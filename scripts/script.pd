@@ -96,4 +96,4 @@ X_train, X_test, y_train, y_test = train_test_split(features_training, target_tr
 ## Logistic Regression (Elastic Net)
 ## Random Forest
 ## Gradient boosted decision tree
-## SVC (linear and polynomial kernels)
+## SVC (linear and polynomial kernel)
