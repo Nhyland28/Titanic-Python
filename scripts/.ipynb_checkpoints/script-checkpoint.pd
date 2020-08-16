@@ -1,0 +1,99 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+
+#### Import the training and testing data from the Kaggle: https://www.kaggle.com/c/titanic/data
+training = pd.read_csv('/Users/Nick/Data_Science/Kaggle/titanic_python/data/train.csv')
+testing = pd.read_csv('/Users/Nick/Data_Science/Kaggle/titanic_python/data/test.csv')
+
+testing['Survived'] = np.nan
+
+## Add an identifier column so data can be resplit
+testing['training'] = False
+training['training'] = True
+
+full = training.append(testing, sort=True)
+
+full.columns = full.columns.str.lower()
+full.reset_index(drop=True, inplace=True)
+
+#### Create title column from name
+title = full.name.str.partition('.', True)[0]
+full['title'] = title.str.split().str.get(-1)
+
+## Bin the title plot
+title_groups = {'Mr': 'Mr', 
+                'Sir':['Master', 'Dr', 'Rev', 'Don', 'Sir', 'Jonkheer'],
+                'Miss':['Miss', 'Mrs', 'Ms', 'Mlle', 'Mme'],
+                'Madam':['Countess', 'Dona','Lady'],
+                'Military':['Col', 'Capt', 'Major']}
+
+full["title"] = (
+    full["title"]
+    .apply(lambda x: [k for k in title_groups.keys() if x in title_groups[k]])
+    .str[0]
+    .fillna("Other")
+)
+
+#### Create family size column
+full['fsize'] = full['sibsp'] + full['parch'] + 1
+
+#### Make survived column boolean
+full['survived'] = full.survived.astype('boolean')
+
+#### Filter out features we are not interested in
+full = full[['age', 'embarked', 'fare', 'pclass', 'sex', 'title', 'fsize', 'survived', 'training']]
+
+#### Do some data exploration
+testing = full[full.training == False]
+training = full[full.training == True]
+
+sns.catplot(x='survived', hue='sex', data=training, kind='count')
+plt.title('Survival by Sex')
+
+sex_survived_pct = training.groupby(['sex'])['survived'].value_counts(normalize=True).mul(100).rename('percent').reset_index()
+sns.catplot(x='sex', y='percent', hue='survived', data=sex_survived_pct, kind='bar')
+plt.title('Survival by Sex (%)')
+
+sns.catplot(x='survived', y='age', hue='sex', data=training, kind='box')
+plt.title('Survival by Age')
+
+sns.catplot(x='pclass', hue='survived', data=training, kind='count')
+plt.title('Survival by Class')
+
+pclass_survived_pct = training.groupby(['pclass', 'sex'])['survived'].value_counts(normalize=True).mul(100).rename('percent').reset_index()
+sns.catplot(x='pclass', y='percent', hue='survived', kind='bar', data=pclass_survived_pct[pclass_survived_pct.sex=='female'])
+plt.title('Female by class (%)')
+
+sns.catplot(x='pclass', y='percent', hue='survived', kind='bar', data=pclass_survived_pct[pclass_survived_pct.sex=='male'])
+plt.title('Male by class (%)')
+
+sns.catplot(y='fare', x='survived', kind='point', data=training)
+plt.title('Ticket price')
+
+sns.factorplot(x='Survived', hue='Sex', col='Pclass', kind='count', data=training)
+survived_pct = training.groupby(['Pclass', 'Sex'])['Survived'].value_counts(normalize=True).mul(100).rename('Percent').reset_index()
+sns.factorplot(x='Sex', y='Percent', hue='Survived', col='Pclass', kind='bar', data=survived_pct)
+
+#### One hot encode all the data
+full_target = full[['survived', 'training']]
+full_features = full.drop(columns='survived')
+full_features_dummy = pd.get_dummies(full_features)
+
+#### Split the data into training and testing
+target_training = full_target[full_target.training == True].drop(columns='training')
+target_testing = full_target[full_target.training == False].drop(columns='training')
+features_training = full_features_dummy[full_features_dummy.training == True].drop(columns='training')
+features_testing = full_features_dummy[full_features_dummy.training == False].drop(columns='training')
+
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(features_training, target_training, random_state=12)
+
+
+#### What models:
+## KNNeighbors
+## Logistic Regression (Elastic Net)
+## Random Forest
+## Gradient boosted decision tree
+## SVC (linear and polynomial kernels)
