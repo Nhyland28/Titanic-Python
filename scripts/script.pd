@@ -93,7 +93,13 @@ X_train, X_test, y_train, y_test = train_test_split(features_training, target_tr
 
 #### What models:
 ## KNNeighbors
+from sklearn.neighbors import KNeighborsClassifier
+clf = KNeighborsClassifier(n_neighbors=3)
+clf.fit(X_train, y_train)
+print("Test set accuracy: {:.2f}".format(clf.score(X_test, y_test)))
+
 ## Logistic Regression (Elastic Net)
 ## Random Forest
 ## Gradient boosted decision tree
 ## SVC (linear and polynomial kernel)
+
